@@ -14,4 +14,5 @@ var Cmd = &cobra.Command{
 func init() {
 	Cmd.AddCommand(UpdateCmd)
 	Cmd.AddCommand(GetCmd)
+	Cmd.AddCommand(MergeCmd)
 }
