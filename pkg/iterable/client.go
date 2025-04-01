@@ -33,17 +33,26 @@ func NewClient(apiKey string) *Client {
 
 // User represents an Iterable user
 type User struct {
-	Email              string                 `json:"email,omitempty"`
-	UserID             string                 `json:"userId,omitempty"`
-	DataFields         map[string]interface{} `json:"dataFields,omitempty"`
-	MergeNestedObjects bool                   `json:"mergeNestedObjects,omitempty"`
+	Email              string         `json:"email,omitempty"`
+	UserID             string         `json:"userId,omitempty"`
+	DataFields         map[string]any `json:"dataFields,omitempty"`
+	MergeNestedObjects bool           `json:"mergeNestedObjects,omitempty"`
 }
 
 // APIError represents an error returned from the Iterable API
 type APIError struct {
-	Code    string                 `json:"code"`
-	Message string                 `json:"msg"`
-	Params  map[string]interface{} `json:"params,omitempty"`
+	Code    string         `json:"code"`
+	Message string         `json:"msg"`
+	Params  map[string]any `json:"params,omitempty"`
+}
+
+// List represents an Iterable list
+type List struct {
+	CreatedAt   int64  `json:"createdAt"`
+	Description string `json:"description,omitempty"`
+	ID          int    `json:"id"`
+	ListType    string
+	Name        string
 }
 
 func (e *APIError) Error() string {
@@ -104,6 +113,27 @@ func (c *Client) do(req *http.Request, v interface{}) error {
 	return nil
 }
 
+// MergeUsers merges two Iterable users
+func (c *Client) MergeUsers(src, dst string) (*APIError, error) {
+	path := "users/merge"
+	body := map[string]string{
+		"destinationEmail": dst,
+		"sourceEmail":      src,
+	}
+	req, err := c.newRequest("POST", path, body)
+	if err != nil {
+		return nil, err
+	}
+
+	var response APIError
+	err = c.do(req, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response, nil
+}
+
 // GetUser retrieves a user by email from Iterable
 func (c *Client) GetUser(email string) (*User, error) {
 	path := fmt.Sprintf("users/%s", email)
@@ -143,4 +173,22 @@ func (c *Client) UpdateUser(user User) error {
 	}
 
 	return nil
+}
+
+// GetLists retrieves the lists associated with the Iterable account
+func (c *Client) GetLists() (*[]List, error) {
+	req, err := c.newRequest("GET", "lists", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var response struct {
+		Lists []List `json:"lists"`
+	}
+	err = c.do(req, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.Lists, nil
 }
