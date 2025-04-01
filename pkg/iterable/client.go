@@ -88,13 +88,41 @@ func (c *Client) newRequest(method, path string, body interface{}) (*http.Reques
 	return req, nil
 }
 
+// doPlain sends an HTTP request and returns the response body without parsing.
+func (c *Client) doPlain(req *http.Request) (*[]byte, error) {
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %v", err)
+	}
+
+	return &bodyBytes, nil
+}
+
 // do sends an API request and returns the response
-func (c *Client) do(req *http.Request, v interface{}) error {
+func (c *Client) do(req *http.Request, v any) error {
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+
+	// Read the entire body for debugging
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %v", err)
+	}
+
+	// Print the body for debugging
+	fmt.Printf("Response body: %s\n", bodyBytes)
+
+	// Create a new reader from the bytes for further processing
+	resp.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusBadRequest {
 		var apiErr APIError
@@ -191,4 +219,23 @@ func (c *Client) GetLists() (*[]List, error) {
 	}
 
 	return &response.Lists, nil
+}
+
+// GetListUsers retrieves the users in a specific Iterable list
+func (c *Client) GetListUsers(listId string, preferUserId bool) (*[]byte, error) {
+	query := url.Values{}
+	query.Set("preferUserId", fmt.Sprintf("%t", preferUserId))
+	query.Set("listId", listId)
+	path := fmt.Sprintf("lists/getUsers?%s", query.Encode())
+	req, err := c.newRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.doPlain(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return body, nil
 }
