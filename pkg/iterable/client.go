@@ -33,10 +33,9 @@ func NewClient(apiKey string) *Client {
 
 // User represents an Iterable user
 type User struct {
-	Email              string         `json:"email,omitempty"`
-	UserID             string         `json:"userId,omitempty"`
-	DataFields         map[string]any `json:"dataFields,omitempty"`
-	MergeNestedObjects bool           `json:"mergeNestedObjects,omitempty"`
+	Email      string         `json:"email,omitempty"`
+	UserID     string         `json:"userId,omitempty"`
+	DataFields map[string]any `json:"dataFields,omitempty"`
 }
 
 // APIError represents an error returned from the Iterable API
@@ -60,7 +59,7 @@ func (e *APIError) Error() string {
 }
 
 // newRequest creates a new HTTP request to the Iterable API
-func (c *Client) newRequest(method, path string, body interface{}) (*http.Request, error) {
+func (c *Client) newRequest(method, path string, body any) (*http.Request, error) {
 	rel, err := url.Parse(path)
 	if err != nil {
 		return nil, err
@@ -169,23 +168,31 @@ func (c *Client) GetUser(email string) (*User, error) {
 	return &response.User, nil
 }
 
+// UserUpdateRequest represents a request to update a user's profile in Iterable
+type UserUpdateRequest struct {
+	Email              string         `json:"email,omitempty"`
+	UserID             string         `json:"userId,omitempty"`
+	DataFields         map[string]any `json:"dataFields,omitempty"`
+	CreateNewFields    bool           `json:"createNewFields,omitempty"`
+	MergeNestedObjects bool           `json:"mergeNestedObjects,omitempty"`
+	PreferUserId       bool           `json:"preferUserId,omitempty"`
+}
+
 // UpdateUser updates an Iterable user's profile
-func (c *Client) UpdateUser(user User) error {
+func (c *Client) UpdateUser(user UserUpdateRequest) error {
 	req, err := c.newRequest("POST", "users/update", user)
 	if err != nil {
 		return err
 	}
 
-	var response struct {
-		Success bool `json:"success"`
-	}
+	var response APIError
 	err = c.do(req, &response)
 	if err != nil {
 		return err
 	}
 
-	if !response.Success {
-		return fmt.Errorf("failed to update user")
+	if response.Code != "Success" {
+		return fmt.Errorf("failed to update user: %v", response)
 	}
 
 	return nil

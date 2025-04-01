@@ -3,6 +3,7 @@ package users
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"strings"
 
@@ -21,6 +22,8 @@ var UpdateCmd = &cobra.Command{
 		email, _ := cmd.Flags().GetString("email")
 		userId, _ := cmd.Flags().GetString("user-id")
 		mergeNestedObjects, _ := cmd.Flags().GetBool("merge-nested-objects")
+		createNewFields, _ := cmd.Flags().GetBool("create-new-fields")
+		preferUserId, _ := cmd.Flags().GetBool("prefer-user-id")
 
 		// Either email or userId must be provided
 		if email == "" && userId == "" {
@@ -28,11 +31,13 @@ var UpdateCmd = &cobra.Command{
 		}
 
 		// Create user object
-		user := iterable.User{
+		user := iterable.UserUpdateRequest{
 			Email:              email,
 			UserID:             userId,
-			DataFields:         make(map[string]interface{}),
+			DataFields:         make(map[string]any),
 			MergeNestedObjects: mergeNestedObjects,
+			CreateNewFields:    createNewFields,
+			PreferUserId:       preferUserId,
 		}
 
 		// Handle data fields
@@ -55,15 +60,13 @@ var UpdateCmd = &cobra.Command{
 				return fmt.Errorf("failed to read data file: %v", err)
 			}
 
-			var dataFields map[string]interface{}
+			var dataFields map[string]any
 			if err := json.Unmarshal(fileData, &dataFields); err != nil {
 				return fmt.Errorf("failed to parse data file as JSON: %v", err)
 			}
 
 			// Merge file data with any command-line data fields
-			for k, v := range dataFields {
-				user.DataFields[k] = v
-			}
+			maps.Copy(user.DataFields, dataFields)
 		}
 
 		// Update the user
@@ -81,5 +84,7 @@ func init() {
 	UpdateCmd.Flags().String("user-id", "", "User ID")
 	UpdateCmd.Flags().StringArray("data-field", []string{}, "Data field in key=value format (can be used multiple times)")
 	UpdateCmd.Flags().String("data-file", "", "JSON file containing data fields")
-	UpdateCmd.Flags().Bool("merge-nested-objects", true, "Whether to merge nested objects")
+	UpdateCmd.Flags().Bool("merge-nested-objects", false, "Whether to merge nested objects")
+	UpdateCmd.Flags().Bool("create-new-fields", false, "Whether new fields should be ingested and added to the schema")
+	UpdateCmd.Flags().Bool("prefer-user-id", false, "Whether or not a new user should be created if the request includes a userId that doesn't yet exist in the Iterable project")
 }
