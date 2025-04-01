@@ -57,8 +57,13 @@ When updating a user with `--data-file`, the JSON file should contain a flat obj
 
 ## Available Commands
 
-- `users update` - Update a user in Iterable
-- `users get` - Get a user from Iterable by email
+```
+  campaigns   Manage Iterable campaigns
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+  lists       Manage Iterable lists
+  users       Manage Iterable users
+```
 
 ## Global Flags
 
