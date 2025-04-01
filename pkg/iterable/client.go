@@ -112,18 +112,6 @@ func (c *Client) do(req *http.Request, v any) error {
 	}
 	defer resp.Body.Close()
 
-	// Read the entire body for debugging
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed to read response body: %v", err)
-	}
-
-	// Print the body for debugging
-	fmt.Printf("Response body: %s\n", bodyBytes)
-
-	// Create a new reader from the bytes for further processing
-	resp.Body = io.NopCloser(bytes.NewReader(bodyBytes))
-
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusBadRequest {
 		var apiErr APIError
 		if err = json.NewDecoder(resp.Body).Decode(&apiErr); err != nil {
@@ -238,4 +226,44 @@ func (c *Client) GetListUsers(listId string, preferUserId bool) (*[]byte, error)
 	}
 
 	return body, nil
+}
+
+// Campaign represents an Iterable campaign
+type Campaign struct {
+	CampaignState       string   `json:"campaignState"`
+	CreatedAt           int      `json:"createdAt"`
+	CreatedByUserId     string   `json:"createdByUserId"`
+	EndedAt             int      `json:"endedAt,omitempty"`
+	ID                  int      `json:"id"`
+	Labels              []string `json:"labels,omitempty"`
+	ListIds             []int    `json:"listIds,omitempty"`
+	MessageMedium       string   `json:"messageMedium"`
+	Name                string   `json:"name"`
+	RecurringCampaignId int      `json:"recurringCampaignId,omitempty"`
+	SendSize            int      `json:"sendSize,omitempty"`
+	StartAt             int      `json:"startAt,omitempty"` // milliseconds
+	SuppressionListIds  []int    `json:"suppressionListIds,omitempty"`
+	TemplateId          int      `json:"templateId"`
+	Type                string   `json:"type"`
+	UpdatedAt           int      `json:"updatedAt"`
+	UpdatedByUserId     string   `json:"updatedByUserId,omitempty"`
+	WorkflowId          int      `json:"workflowId,omitempty"`
+}
+
+// GetCampaigns retrieves the campaigns associated with the Iterable account
+func (c *Client) GetCampaigns() (*[]Campaign, error) {
+	req, err := c.newRequest("GET", "campaigns", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var response struct {
+		Campaigns []Campaign `json:"campaigns"`
+	}
+	err = c.do(req, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.Campaigns, nil
 }

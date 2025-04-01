@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/joinflux/iterablectl/cmd/campaigns"
 	"github.com/joinflux/iterablectl/cmd/lists"
 	"github.com/joinflux/iterablectl/cmd/users"
 	"github.com/spf13/cobra"
@@ -38,6 +39,7 @@ func init() {
 	// Add subcommands
 	rootCmd.AddCommand(users.Cmd)
 	rootCmd.AddCommand(lists.Cmd)
+	rootCmd.AddCommand(campaigns.Cmd)
 }
 
 func main() {
