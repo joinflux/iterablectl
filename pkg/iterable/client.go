@@ -274,3 +274,24 @@ func (c *Client) GetCampaigns() (*[]Campaign, error) {
 
 	return &response.Campaigns, nil
 }
+
+// DeleteUser removes a user from Iterable by their email address
+func (c *Client) DeleteUser(email string) error {
+	path := fmt.Sprintf("users/%s", email)
+	req, err := c.newRequest("DELETE", path, nil)
+	if err != nil {
+		return err
+	}
+
+	var response APIError
+	err = c.do(req, &response)
+	if err != nil {
+		return err
+	}
+
+	if response.Code != "Success" {
+		return fmt.Errorf("failed to delete user: %v", response)
+	}
+
+	return nil
+}
