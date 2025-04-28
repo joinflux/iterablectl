@@ -295,3 +295,24 @@ func (c *Client) DeleteUser(email string) error {
 
 	return nil
 }
+
+// DeleteUserByID removes a user from Iterable by their user ID
+func (c *Client) DeleteUserByID(userID string) error {
+	path := fmt.Sprintf("users/byUserId/%s", userID)
+	req, err := c.newRequest("DELETE", path, nil)
+	if err != nil {
+		return err
+	}
+
+	var response APIError
+	err = c.do(req, &response)
+	if err != nil {
+		return err
+	}
+
+	if response.Code != "Success" {
+		return fmt.Errorf("failed to delete user: %v", response)
+	}
+
+	return nil
+}

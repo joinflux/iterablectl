@@ -22,10 +22,28 @@ var DeleteCmd = &cobra.Command{
 			return fmt.Errorf("email is required")
 		}
 
-		if err := client.DeleteUser(email); err != nil {
+		byUserID, _ := cmd.Flags().GetBool("by-userid")
+
+		var err error
+		if byUserID {
+			err = client.DeleteUserByID(email)
+		} else {
+			err = client.DeleteUser(email)
+		}
+
+		if err != nil {
 			return fmt.Errorf("error deleting user: %v", err)
 		}
 
+		identifier := "email"
+		if byUserID {
+			identifier = "userID"
+		}
+		fmt.Printf("User with %s '%s' successfully deleted\n", identifier, email)
 		return nil
 	},
+}
+
+func init() {
+	DeleteCmd.Flags().Bool("by-userid", false, "Delete user by user ID instead of email")
 }
