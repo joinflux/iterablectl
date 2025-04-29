@@ -114,7 +114,7 @@ func (c *Client) do(req *http.Request, v any) error {
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusBadRequest {
 		var apiErr APIError
 		if err = json.NewDecoder(resp.Body).Decode(&apiErr); err != nil {
-			return fmt.Errorf("API request failed with status %d: %v", resp.StatusCode, err)
+			return fmt.Errorf("API request failed with status %d: %w", resp.StatusCode, err)
 		}
 		return &apiErr
 	}
@@ -128,12 +128,29 @@ func (c *Client) do(req *http.Request, v any) error {
 	return nil
 }
 
-// MergeUsers merges two Iterable users
-func (c *Client) MergeUsers(src, dst string) (*APIError, error) {
+type MergeUsersOpts struct {
+	SrcEmail string
+	DstEmail string
+	SrcID    string
+	DstID    string
+}
+
+// MergeUsers merges two Iterable users by their email addresses
+func (c *Client) MergeUsers(opts MergeUsersOpts) (*APIError, error) {
 	path := "users/merge"
-	body := map[string]string{
-		"destinationEmail": dst,
-		"sourceEmail":      src,
+	body := map[string]string{}
+
+	if opts.DstEmail != "" {
+		body["destinationEmail"] = opts.DstEmail
+	}
+	if opts.SrcEmail != "" {
+		body["sourceEmail"] = opts.SrcEmail
+	}
+	if opts.SrcID != "" {
+		body["sourceUserId"] = opts.SrcID
+	}
+	if opts.DstID != "" {
+		body["destinationUserId"] = opts.DstID
 	}
 	req, err := c.newRequest("POST", path, body)
 	if err != nil {
@@ -144,6 +161,9 @@ func (c *Client) MergeUsers(src, dst string) (*APIError, error) {
 	err = c.do(req, &response)
 	if err != nil {
 		return nil, err
+	}
+	if response.Code != "Success" {
+		return nil, fmt.Errorf("failed to update user: %v", response)
 	}
 
 	return &response, nil

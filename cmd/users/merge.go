@@ -9,26 +9,43 @@ import (
 
 // MergeCmd represents the merge command for users
 var MergeCmd = &cobra.Command{
-	Use:     "merge",
-	Short:   "Merge two users",
-	Args:    cobra.ExactArgs(2),
-	Example: "iterablectl users merge <source_email> <destination_email>",
+	Use:   "merge",
+	Short: "Merge two users",
+	Example: `iterablectl users merge --from-email <source email> --to-email <destination email>
+iterablectl users merge --from-user-id <source user id> --to-email <destination email>
+iterablectl users merge --from-user-id <source user id> --to-user-id <destination user id>
+iterablectl users merge --from-email <source > --to-user-id <destination user id>
+	`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		apiKey, _ := cmd.Flags().GetString("api-key")
 		client := iterable.NewClient(apiKey)
 
-		sourceEmail := args[0]
-		if sourceEmail == "" {
-			return fmt.Errorf("source email is required")
+		// Get flag values
+		fromEmail, _ := cmd.Flags().GetString("from-email")
+		fromUserID, _ := cmd.Flags().GetString("from-user-id")
+		toEmail, _ := cmd.Flags().GetString("to-email")
+		toUserID, _ := cmd.Flags().GetString("to-user-id")
+
+		// Validate that exactly one source identifier is provided
+		if (fromEmail == "" && fromUserID == "") || (fromEmail != "" && fromUserID != "") {
+			return fmt.Errorf("exactly one of --source-email or --source-user-id must be specified")
 		}
-		destinationEmail := args[1]
-		if destinationEmail == "" {
-			return fmt.Errorf("destination email is required")
+		if (toEmail == "" && toUserID == "") || (toEmail != "" && toUserID != "") {
+			return fmt.Errorf("exactly one of --to-email or --to-user-id must be specified")
 		}
 
-		response, err := client.MergeUsers(sourceEmail, destinationEmail)
+		var response *iterable.APIError
+		var err error
+
+		response, err = client.MergeUsers(iterable.MergeUsersOpts{
+			SrcEmail: fromEmail,
+			DstEmail: toEmail,
+
+			SrcID: fromUserID,
+			DstID: toUserID,
+		})
 		if err != nil {
-			return fmt.Errorf("error merging users: %v", err)
+			return fmt.Errorf("error merging users: %w", err)
 		}
 
 		if response.Code != "Success" {
@@ -37,4 +54,11 @@ var MergeCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+func init() {
+	MergeCmd.Flags().String("from-email", "", "Email address of the source user to merge")
+	MergeCmd.Flags().String("from-user-id", "", "User ID of the source user to merge")
+	MergeCmd.Flags().String("to-email", "", "Email address of the destination profile to merge into")
+	MergeCmd.Flags().String("to-user-id", "", "User ID of the destination profile to merge into")
 }
