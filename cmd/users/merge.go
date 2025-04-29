@@ -14,7 +14,7 @@ var MergeCmd = &cobra.Command{
 	Example: `iterablectl users merge --from-email <source email> --to-email <destination email>
 iterablectl users merge --from-user-id <source user id> --to-email <destination email>
 iterablectl users merge --from-user-id <source user id> --to-user-id <destination user id>
-iterablectl users merge --from-email <source > --to-user-id <destination user id>
+iterablectl users merge --from-email <source email> --to-user-id <destination user id>
 	`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		apiKey, _ := cmd.Flags().GetString("api-key")
